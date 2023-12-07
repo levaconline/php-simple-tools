@@ -1,25 +1,24 @@
 <?php
-
 /**
- * Fix accidentaly used tabs for indentatuion using spaces.
+ * Remove specifficaly marked backups/files (Specificaly by filename or by dir included subdirs).
  * 
  * PHP 8.2.12
  * 
  * @author  Aleksandar Todorovic <levaconline@gmail.com> <aleksandar.todorovic.xyz@gmail.com> <aleksandar.todorovic.777@yandex.com>
  */
-class Tab2Spaces 
+
+class RemoveBackups 
 {
-    public int $spaces = 4;
     private string $path = '';
     public array $msg = [];
-    private string $backupMarker = '_BACKUP_';
+    private string $backupMarker = '_BACKUP';
     private bool $isDir = false; // If dir passed, replace tabs in all files in dir adn subdir files.
-    private array $targerExetnsion = ['php']; // Affect only files with specified extensions. (if array empty, affect all files.)
+    public int $count = 0; // Delered files count.
 
-    public function __construct($path = '')
+    public function __construct($path = '', $backupMarker = '_BACKUP_')
     {
         $this->path = $path;
-        $this->backupMarker = '_BACKUP_' . time();
+        $this->backupMarker = $backupMarker;
     }
 
     public function run(): void
@@ -57,7 +56,7 @@ class Tab2Spaces
             $this->findFilesRecursive($this->path);
         } else {
             // Single file;
-            $this->replaceTabs($this->path);
+            $this->removeBackup($this->path);
         }
     }
 
@@ -67,51 +66,44 @@ class Tab2Spaces
             if (is_dir($file)) {
                 $this->findFilesRecursive($file);
             } else {
-                $this->replaceTabs($file);
+                $this->removeBackup($file);
             }
         }
         return;
     }
-
-    private function replaceTabs($path = ''): void
+    
+    private function removeBackup($path): bool
     {
-        if (!empty($this->targerExetnsion)) {
-            $fi = pathinfo($path);
-            if (!in_array( $fi['extension'], $this->targerExetnsion)) {
-                return;
-            }
-        }
-
-        if (!$this->makeBackup($path)) {
-            return;
-        }
-
-        $source = file_get_contents($path);
-        $managedSource = str_replace("\t", str_repeat(' ', $this->spaces), $source);
-        file_put_contents($path, $managedSource);
-        echo $path . " managed,\n";
-    }
-
-    private function makeBackup($path): bool
-    {
-        if (!copy($path, $path . $this->backupMarker)) {
-            echo "Could not make backup" .  $path . "\n";
+        if (strpos($path, $this->backupMarker) === false) {
             return false;
         }
+
+        if (!unlink($path)) {
+            $this->msg['Warning'][] = "Can't delete file: " .  $path . ". Please try to delete manyally.\n";
+            return false;
+        }
+        $this->count++;
+        $this->msg['Deleted'] = $this->count . " files.\n";
+
+        echo $this->count . ". Removed: " . $path . "\n";
+
 
         return true;
     }
 }
 
 // CALL //
-if (!isset($argv[1])) {
+if (!isset($argv[1]) && !isset($argv[2])) {
     echo "\nERROR: No path passed.\n\n";
     echo "Path to file ot dir is required,\n";
     echo "Try something like following:\n";
-    echo "php Tab2Spaces.php some_file.php \n\n";
+    echo "php RemoveBackups.php <some_file.php || some_dir> <backup_marker> \n\n";
+    echo "php RemoveBackups.php ../ _BACKUP_ \n\n";
     die();
 }
 
-$replacer = new Tab2Spaces($argv[1]);
+$replacer = new RemoveBackups($argv[1], $argv[2]);
 $replacer->run();
+
+var_dump($replacer->msg);
 
