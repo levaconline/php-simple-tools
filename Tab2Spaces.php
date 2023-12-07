@@ -57,13 +57,10 @@ class Tab2Spaces
     private function findFilesRecursive($path)
     {
         foreach (glob($path. '/*') as $file) {
-            //echo "\n" . $file . "\n";
             if (is_dir($file)) {
-                //echo "\ndir: " . $file . "\n";
                 $this->findFilesRecursive($file);
             } else {
                 $this->replaceTabs($file);
-                //echo "\nfile: " . $file . "\n";
             }
         }
         return;
@@ -81,11 +78,11 @@ class Tab2Spaces
         if (!$this->makeBackup($path)) {
             return;
         }
-echo $path , "\n";
+
         $source = file_get_contents($path);
         $managedSource = str_replace("\t", str_repeat(' ', $this->spaces), $source);
         file_put_contents($path, $managedSource);
-        echo "managed,\n";
+        echo $path . " managed,\n";
     }
 
     private function makeBackup($path): bool
@@ -104,7 +101,7 @@ if (!isset($argv[1])) {
     echo "\nERROR: No path passed.\n\n";
     echo "Path to file ot dir is required,\n";
     echo "Try something like following:\n";
-    echo "php Tab2Spaces.php file.php \n\n";
+    echo "php Tab2Spaces.php some_file.php \n\n";
     die();
 }
 
